@@ -14,6 +14,8 @@ public class ClosestPair
 	*/
     public static void main( String[] args )
     {
+    	
+    	
         //Initialize, need to remove existing in output file location.
     	
     	//Implement 
