@@ -93,6 +93,7 @@ public class ClosestPair {
 		SparkConf conf = new SparkConf().setAppName(appName).setMaster(master);
 		JavaSparkContext sc = new JavaSparkContext(conf);
 		JavaRDD<String> lines = sc.textFile(inputfilepath, partitions);
+		//JavaRDD<String> lines = sc.textFile(args[0], partitions);
 
 		JavaRDD<Point> points = lines.mapPartitions(new FlatMapFunction<Iterator<String>, Point>() {
 
@@ -249,9 +250,9 @@ public class ClosestPair {
 
 		JavaRDD<Point> closestRDD = sc.parallelize(closestPoints);
 
-		closestRDD.saveAsTextFile(outputfilepath);
-
-		// Implement
+		//closestRDD.saveAsTextFile(outputfilepath);
+		closestRDD.saveAsTextFile(args[1]);
+		
 
 		// Output your result, you need to sort your result!!!
 		// And,Don't add a additional clean up step delete the new generated
