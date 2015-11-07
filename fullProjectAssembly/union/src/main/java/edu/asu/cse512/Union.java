@@ -1,12 +1,18 @@
 package edu.asu.cse512;
 
+import java.util.Arrays;
+
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 
 import edu.asu.cse512.functions.CPolyUnionMapFunction;
+import edu.asu.cse512.functions.CoordinateMapFunction;
+import edu.asu.cse512.functions.CoordinateReduceFunction;
+import edu.asu.cse512.functions.CoordinateType;
 import edu.asu.cse512.functions.GeometryFileMapFunction;
 
 /**
@@ -30,15 +36,15 @@ public class Union {
 	private String appName;
 
 	private String master;
-	
+
 	private SparkConf conf;
-	
+
 	private JavaSparkContext context;
-	
+
 	private FileType fileType;
-	
+
 	private int partitions;
-	
+
 	private static int DEFAULT_PARTITIONS = 4;
 
 	/*
@@ -86,16 +92,15 @@ public class Union {
 		}
 
 	}
-	
+
 	private void init() throws Exception {
-		conf = new SparkConf().setAppName(appName).setMaster(
-				master);
+		conf = new SparkConf().setAppName(appName).setMaster(master);
 		context = new JavaSparkContext(conf);
-		
+
 		// num of partitions to default
 		if (this.partitions == 0)
 			this.partitions = DEFAULT_PARTITIONS;
-		
+
 		// set file type
 		if (this.fileType == null)
 			this.fileType = FileType.HDFS;
@@ -107,40 +112,65 @@ public class Union {
 	public void geometryUnion() throws Exception {
 		// initialize apache spark and java context
 		init();
-		
+
 		// read the input file
-		JavaRDD<String> inputFileRDD = context.textFile(inputFile, partitions);
+		JavaRDD<String> inputFileRDD = this.context.textFile(inputFile,
+				partitions);
 
 		// convert the input file to collections of Geometry shapes
-		JavaRDD<Geometry> polygonsRDD = inputFileRDD.mapPartitions(new GeometryFileMapFunction());
-		
+		JavaRDD<Geometry> polygonsRDD = inputFileRDD
+				.mapPartitions(new GeometryFileMapFunction());
+
 		// Cascade union polygons
-		JavaRDD<Geometry> cascadedPolygonRDD = polygonsRDD.mapPartitions(new CPolyUnionMapFunction());
-		
+		JavaRDD<Geometry> cascadedPolygonRDD = polygonsRDD
+				.mapPartitions(new CPolyUnionMapFunction());
+
 		// Merge all partitions and execute the cascaded polygon union
 		// it has only one polygon object
-		JavaRDD<Geometry> finalPolygonRDD = cascadedPolygonRDD.coalesce(1).mapPartitions(new CPolyUnionMapFunction());
-		
+		JavaRDD<Geometry> finalPolygonRDD = cascadedPolygonRDD.coalesce(1)
+				.mapPartitions(new CPolyUnionMapFunction());
+
 		finalPolygonRDD.cache();
 		
+		// Get the coordinates
+		JavaRDD<Coordinate> coordinatesRDD = finalPolygonRDD
+				.mapPartitions(new CoordinateMapFunction());
+		
+		// final list of coordinates
+		JavaRDD<Coordinate> finalCoordinatesRDD;
+
 		Geometry finalPolygon = finalPolygonRDD.first();
-		
+
 		int numGeoms = finalPolygon.getNumGeometries();
-		
+
 		if (numGeoms > 0) {
 			// has multiple polygons
 			
+			coordinatesRDD.repartition(this.partitions);
+			Coordinate minX = coordinatesRDD
+					.reduce(new CoordinateReduceFunction(CoordinateType.MIN_X));
+
+			Coordinate maxX = coordinatesRDD
+					.reduce(new CoordinateReduceFunction(CoordinateType.MAX_X));
+
+			Coordinate minY = coordinatesRDD
+					.reduce(new CoordinateReduceFunction(CoordinateType.MIN_Y));
+
+			Coordinate maxY = coordinatesRDD
+					.reduce(new CoordinateReduceFunction(CoordinateType.MAX_Y));
+
+			// new polygon
+			finalCoordinatesRDD = this.context.parallelize(Arrays.asList(new Coordinate[] { minX,
+					minY, maxX, maxY }));
+		} else {
+			finalCoordinatesRDD = coordinatesRDD;
 		}
-		
+
 		// output polygons
-		System.out.println(finalPolygonRDD.collect());
-		
-		// Collect origins 
-		
-		// 
-		
+		System.out.println(finalCoordinatesRDD.collect());
+
 	}
-	
+
 	public void closeSpark() {
 		try {
 			if (this.context != null)
@@ -209,6 +239,5 @@ public class Union {
 }
 
 enum FileType {
-	HDFS,
-	TEXT
+	HDFS, TEXT
 }
