@@ -15,6 +15,7 @@ import scala.Tuple2;
 
 public class Join 
 {
+	// helper function to extract the coordinates from input file and define points
 	private static Function<String, Point> extractPoints = new Function<String, Point>() {
 
 		private static final long serialVersionUID = 1L;
@@ -30,6 +31,7 @@ public class Join
 		}		
 	};
 	
+	// helper function to extract the coordinates from input file and define rectangles
 	private static Function<String, Rectangle> extractRectangles = new Function<String, Rectangle>() {
 
 		private static final long serialVersionUID = 1L;
@@ -47,9 +49,29 @@ public class Join
 		}
 	};
 
+	// helper function to convert tuple to string i.e. to remove opening '(' and closing ')' from the output
+	public static Function<Tuple2<Integer,String>, String> arrangeOutput = new Function<Tuple2<Integer,String>, String>() {
+
+		private static final long serialVersionUID = 1L;
+
+		public String call(Tuple2<Integer, String> arg0) throws Exception {
+			return arg0._1.toString() + "," + arg0._2;
+		}		
+	};
+	
+	// helper function to retrieve Bids from the tuple2 for sorting
+	public static Function<Tuple2<Integer, String>, Integer> retrieveBid = new Function<Tuple2<Integer, String>, Integer>(){
+		
+		private static final long serialVersionUID = 1L;
+
+		public Integer call(Tuple2<Integer, String> arg0) throws Exception {
+			return arg0._1;
+		}
+	};
+	
     public static void main( String[] args ) {
-    	String input1 = "JoinQueryTestData.csv";
-    	String input2 = "input2.csv";
+    	String input1 = "JoinQueryInput1.csv";
+    	String input2 = "JoinQueryInput2.csv";
     	String output = "outputLocation";
     	String input1type = "rectangle";
     	
@@ -61,90 +83,139 @@ public class Join
 			String input2,
 			String output,
 			String input1type) {
-    	SparkConf conf = new SparkConf().setAppName("SpatialJoinQuery").setMaster("local");
+    	
+		SparkConf conf = new SparkConf().setAppName("SpatialJoinQuery").setMaster("local");
     	JavaSparkContext sparkContext = new JavaSparkContext(conf);
     	
+    	// making Java RDDS from input files
 		JavaRDD<String> file1 = sparkContext.textFile(input1);
 		JavaRDD<String> file2 = sparkContext.textFile(input2);
 		
+		// checking whether type of input1 is point or rectangle and proceeding accordingly 
 		if(input1type.equals("point")) {
+			// mapping input1 to Point
 			JavaRDD<Point> points = file1.map(extractPoints);
-			JavaRDD<Rectangle> bigRectangles = file2.map(extractRectangles); 
 			
+			// mapping input2 to Rectangle
+			JavaRDD<Rectangle> bTypeRectangles = file2.map(extractRectangles); 
+			
+			// broadcasting input1 so that every worker has a copy of them
 			final Broadcast<List<Point>> broadcastPoints = sparkContext.broadcast(points.collect());			
 			
-			JavaRDD<Tuple2<Integer, ArrayList<Integer>>> validPolygons = bigRectangles
-					.map(new Function<Rectangle, Tuple2<Integer, ArrayList<Integer>>>() {
+			// mapping every bTypeRectangle with aTypeInput to check for join
+			JavaRDD<Tuple2<Integer, String>> validPolygons = bTypeRectangles
+					.map(new Function<Rectangle, Tuple2<Integer, String>>() {
 					
 						private static final long serialVersionUID = 1L;
 
-						public Tuple2<Integer, ArrayList<Integer>> call(Rectangle rectangle) throws Exception {	
+						public Tuple2<Integer, String> call(Rectangle rectangle) throws Exception {
+							
+							// getting all the points in an array list
 							ArrayList<Point> points = (ArrayList<Point>) broadcastPoints.getValue();
 							Integer rectangleId = rectangle.getId();
 							ArrayList<Integer> pointIds = new ArrayList<Integer>();
 							
+							// checking if bTyperectangles contain points and adding their IDs if true 
 							for (int i = 0; i< points.size(); i++) {
-//								System.out.println("Lets see how many times here " + i);
 								if(points.get(i).IsIn(rectangle)) {
 									pointIds.add(points.get(i).getId());
 								}
 							}
 							
+							// making a tuple of AtypeIDandBTypeRectangleIDs
 							Tuple2<Integer, ArrayList<Integer>> tupleOfAidBid = new Tuple2<Integer, ArrayList<Integer>>(rectangleId, pointIds);
+							
+							// Sorting aTypeIDs in ascending order
 							Collections.sort(tupleOfAidBid._2);
-							return tupleOfAidBid;
+							
+							// arranging the IDs as per requirement document
+							StringBuilder aidList = new StringBuilder();
+							for(int i=0; i< tupleOfAidBid._2.size(); i++) {
+								
+								aidList.append(tupleOfAidBid._2.get(i) + ",");
+							}
+							int i;
+							if(0 < (i = aidList.length())) {
+								// deleting final ','
+								aidList.deleteCharAt(i-1);
+							} else {
+								// adding null as per requirement documentation
+								aidList.append("NULL");
+							}
+							
+							Tuple2<Integer, String> BidAid = new Tuple2<Integer, String>(rectangleId, aidList.toString());
+							return BidAid;
 						}
 					})
-					.sortBy(new Function<Tuple2<Integer, ArrayList<Integer>>, Integer>(){
-						
-						private static final long serialVersionUID = 1L;
-
-						public Integer call(Tuple2<Integer, ArrayList<Integer>> arg0) throws Exception {
-							return arg0._1;
-						}
-				
-					}, true, 1);
-			 
-			validPolygons.coalesce(1).saveAsTextFile(output);	
+					.sortBy(retrieveBid, true, 1); // sorting in ascending order
+			
+			// arranging the result as per requirement document
+			JavaRDD<String> result = validPolygons.map(arrangeOutput);
+			
+			// saving the result in a hdfs file
+			result.coalesce(1).saveAsTextFile(output);
 		} else if(input1type.equals("rectangle")) {
-			JavaRDD<Rectangle> rectangles = file1.map(extractRectangles);
-			JavaRDD<Rectangle> bigRectangles = file2.map(extractRectangles); 
+			// mapping input1 to Rectangle
+			JavaRDD<Rectangle> rectanglesInput1 = file1.map(extractRectangles);
 			
-			final Broadcast<List<Rectangle>> broadcastRectangles = sparkContext.broadcast(rectangles.collect());			
+			// mapping input2 to Rectangle
+			JavaRDD<Rectangle> bTypeRectangles = file2.map(extractRectangles); 
 			
-			JavaRDD<Tuple2<Integer, ArrayList<Integer>>> validPolygons = bigRectangles
-					.map(new Function<Rectangle, Tuple2<Integer, ArrayList<Integer>>>() {
+			// broadcasting input1 so that every worker has a copy of them
+			final Broadcast<List<Rectangle>> broadcastRectangles = sparkContext.broadcast(rectanglesInput1.collect());			
+			
+			// mapping every bTypeRectangle with aTypeInput to check for join
+			JavaRDD<Tuple2<Integer, String>> validPolygons = bTypeRectangles
+					.map(new Function<Rectangle, Tuple2<Integer, String>>() {
 					
 						private static final long serialVersionUID = 1L;
 
-						public Tuple2<Integer, ArrayList<Integer>> call(Rectangle rectangle) throws Exception {	
+						public Tuple2<Integer, String> call(Rectangle rectangle) throws Exception {	
+							
+							// getting all the bTypeRectangles in an array list
 							ArrayList<Rectangle> rectangles = (ArrayList<Rectangle>) broadcastRectangles.getValue();
 							Integer rectangleId = rectangle.getId();
-							ArrayList<Integer> smallRectangleIds = new ArrayList<Integer>();
+							ArrayList<Integer> rectangleIDs = new ArrayList<Integer>();
 							
+							// checking if bTyperectangles contain aTypeRectangles and adding their IDs if true 
 							for (int i = 0; i< rectangles.size(); i++) {
-//								System.out.println("Lets see how many times here " + i);
-								if(rectangles.get(i).IsIn(rectangle)) {
-									smallRectangleIds.add(rectangles.get(i).getId());
+								if(rectangles.get(i).has(rectangle)) {
+									rectangleIDs.add(rectangles.get(i).getId());
 								}
 							}
 							
-							Tuple2<Integer, ArrayList<Integer>> tupleOfAidBid = new Tuple2<Integer, ArrayList<Integer>>(rectangleId, smallRectangleIds);
+							// making a tuple of AtypeIDandBTypeRectangleIDs
+							Tuple2<Integer, ArrayList<Integer>> tupleOfAidBid = new Tuple2<Integer, ArrayList<Integer>>(rectangleId, rectangleIDs);
+							
+							// Sorting aTypeIDs in ascending order
 							Collections.sort(tupleOfAidBid._2);
-							return tupleOfAidBid;
+							
+							// arranging the IDs as per requirement document
+							StringBuilder aidList = new StringBuilder();
+							for(int i=0; i< tupleOfAidBid._2.size(); i++) {
+								
+								aidList.append(tupleOfAidBid._2.get(i) + ",");
+							}
+							int i;
+							if(0 < (i = aidList.length())) {
+								// deleting final ','
+								aidList.deleteCharAt(i-1);
+							} else {
+								// adding null as per requirement documentation
+								aidList.append("NULL");
+							}	
+							
+							Tuple2<Integer, String> BidAid = new Tuple2<Integer, String>(rectangleId, aidList.toString());
+							return BidAid;
 						}
 					})
-					.sortBy(new Function<Tuple2<Integer, ArrayList<Integer>>, Integer>(){
-						
-						private static final long serialVersionUID = 1L;
-
-						public Integer call(Tuple2<Integer, ArrayList<Integer>> arg0) throws Exception {
-							return arg0._1;
-						}
-				
-					}, true, 1);
+					.sortBy(retrieveBid, true, 1); // sorting in ascending order
 			
-			validPolygons.coalesce(1).saveAsTextFile(output);
+			// arranging the result as per requirement document
+			JavaRDD<String> result = validPolygons.map(arrangeOutput);
+			
+			// saving the result in a hdfs file
+			result.coalesce(1).saveAsTextFile(output);
 		}
 		sparkContext.close();
 	}

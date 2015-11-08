@@ -6,10 +6,19 @@ public class Rectangle implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 	
+	private int id;
 	private double x1;
 	private double x2;
 	private double y1;
 	private double y2;
+	
+	public int getId() {
+		return id;
+	}
+	
+	public void setId(int id) {
+		this.id = id;
+	}
 	
 	public double getX1() {
 		return x1;
@@ -50,8 +59,21 @@ public class Rectangle implements Serializable {
 		this.y2 = Math.max(y1, y2);
 	}
 	
-	public Boolean Has(Point point) {		
+	public Rectangle(int id, double x1, double x2, double y1, double y2) {
+		this.id = id;
+		this.x1 = Math.min(x1, x2);
+		this.x2 = Math.max(x1, x2);
+		this.y1 = Math.min(y1, y2);
+		this.y2 = Math.max(y1, y2);
+	}
+	
+	public Boolean has(Point point) {		
 		return point.getX1() >= x1 && point.getX1() <= x2
 				&& point.getY1() >= y1 && point.getY1() <= y2;
+	}
+	
+	public Boolean has(Rectangle rectangle) {		
+		return (x1 <= rectangle.getX1() && x2 >= rectangle.getX2()
+				&& y1 <= rectangle.getY1() && y2 >= rectangle.getY2());
 	}
 }

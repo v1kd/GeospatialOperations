@@ -11,6 +11,7 @@ import org.apache.spark.broadcast.Broadcast;
 
 public class RangeQuery 
 {
+	// helper function to extract the coordinates from input file and define points
 	private static Function<String, Point> extractPoints = new Function<String, Point>() {
 
 		private static final long serialVersionUID = 1L;
@@ -26,6 +27,7 @@ public class RangeQuery
 		}		
 	};
 	
+	// helper function to extract the coordinates from input file and define rectangles
 	private static Function<String, Rectangle> extractQueryWindow = new Function<String, Rectangle>() {
 
 		private static final long serialVersionUID = 1L;
@@ -45,7 +47,7 @@ public class RangeQuery
     public static void main(String[] args)
     {
     	String input1 = "RangeQueryTestData.csv";
-    	String input2 = "input2.csv";
+    	String input2 = "RangeQueryRectangle.csv";
     	String output = "output";
     	
     	rangeQuery(input1, input2, output);
@@ -55,24 +57,30 @@ public class RangeQuery
     	SparkConf conf = new SparkConf().setAppName("RangeQuery").setMaster("local");
     	JavaSparkContext sparkContext = new JavaSparkContext(conf);
 		
+    	// making Java RDDS from input files
 		JavaRDD<String> file1 = sparkContext.textFile(input1);
 		JavaRDD<String> file2 = sparkContext.textFile(input2);
 		
+		// mapping input1 to Point
 		JavaRDD<Point> points = file1.map(extractPoints);
+		
+		// mapping input2 to Rectangle
 		JavaRDD<Rectangle> queryWindow = file2.map(extractQueryWindow);
 		
+		// broadcasting rectangle so that every worker has a copy of it
 		final Broadcast<Rectangle> broadcastQueryWindow = sparkContext.broadcast(queryWindow.first());
 		
+		// filtering out the points that do not lie inside the query window
 		JavaRDD<Integer> validPoints = points
 				.filter(new Function<Point, Boolean>() {
 					
 						private static final long serialVersionUID = 1L;
 
 						public Boolean call(Point point) throws Exception {
-							return broadcastQueryWindow.value().Has(point);
+							return broadcastQueryWindow.value().has(point);
 						}
 				})
-				.map(new Function<Point, Integer>() {
+				.map(new Function<Point, Integer>() {	// retieving the id of the points
 					
 					private static final long serialVersionUID = 1L;
 
@@ -80,7 +88,7 @@ public class RangeQuery
 						return arg0.getId();
 					}
 				})
-				.sortBy(new Function<Integer, Integer>(){
+				.sortBy(new Function<Integer, Integer>(){	// sorting the id of the points
 					
 					private static final long serialVersionUID = 1L;
 
@@ -90,6 +98,7 @@ public class RangeQuery
 			
 				}, true, 1);
 	
+		// saving the result in a hdfs file
 		validPoints.coalesce(1).saveAsTextFile(output);
 		sparkContext.close();
 	}

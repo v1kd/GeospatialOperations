@@ -60,13 +60,13 @@ public class Rectangle implements Serializable {
 		this.y2 = Math.max(y1, y2);
 	}
 	
-	public Boolean Has(Point point) {		
+	public Boolean has(Point point) {		
 		return point.getX1() >= x1 && point.getX1() <= x2
 				&& point.getY1() >= y1 && point.getY1() <= y2;
 	}
 	
-	public Boolean IsIn(Rectangle rectangle) {		
-		return x1 >= rectangle.getX1() && x2 <= rectangle.getX2()
-				&& y1 >= rectangle.getY1() && y2 <= rectangle.getY2();
+	public Boolean has(Rectangle rectangle) {		
+		return (x1 <= rectangle.getX1() && x2 >= rectangle.getX2()
+				&& y1 <= rectangle.getY1() && y2 >= rectangle.getY2());
 	}
 }

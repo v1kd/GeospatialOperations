@@ -1,6 +1,11 @@
 package edu.asu.cse512;
 
-public class Point {
+import java.io.Serializable;
+
+public class Point implements Serializable {
+	
+	private static final long serialVersionUID = 1L;
+	
 	private int id;
 	private double x1;
 	private double y1;
@@ -33,5 +38,12 @@ public class Point {
 		this.id = id;
 		this.x1 = x1;
 		this.y1 = y1;
+	}
+	
+	public Boolean IsIn(Rectangle rectangle) {		
+		return ((x1 == rectangle.getX1() && y1 <= rectangle.getY2() && y1 >= rectangle.getY1()) ||
+			   (x1 == rectangle.getX2() && y1 <= rectangle.getY2() && y1 >= rectangle.getY1()) ||
+			   (y1 == rectangle.getY1() && x1 <= rectangle.getX2() && x1 >= rectangle.getX1()) ||
+			   (y1 == rectangle.getY2() && x1 <= rectangle.getX2() && x1 >= rectangle.getX1()));
 	}
 }

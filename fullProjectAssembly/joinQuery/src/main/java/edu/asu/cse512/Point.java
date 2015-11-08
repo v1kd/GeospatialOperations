@@ -41,7 +41,9 @@ public class Point implements Serializable {
 	}
 	
 	public Boolean IsIn(Rectangle rectangle) {		
-		return x1 >= rectangle.getX1() && x1 <= rectangle.getX2()
-				&& y1 >= rectangle.getY1() && y1 <= rectangle.getY2();
+		return ((x1 == rectangle.getX1() && y1 <= rectangle.getY2() && y1 >= rectangle.getY1()) ||
+			   (x1 == rectangle.getX2() && y1 <= rectangle.getY2() && y1 >= rectangle.getY1()) ||
+			   (y1 == rectangle.getY1() && x1 <= rectangle.getX2() && x1 >= rectangle.getX1()) ||
+			   (y1 == rectangle.getY2() && x1 <= rectangle.getX2() && x1 >= rectangle.getX1()));
 	}
 }
