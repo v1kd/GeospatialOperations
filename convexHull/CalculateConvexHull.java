@@ -81,10 +81,10 @@ public class CalculateConvexHull
 	    		if(o1==null || o2==null){
 	    			return 0;
 	    		}
-	    		else if(o1.y!=o2.y){
-	    			return Double.compare(o1.y, o2.y);
-	    		}else{
+	    		else if(o1.x!=o2.x){
 	    			return Double.compare(o1.x, o2.x);
+	    		}else{
+	    			return Double.compare(o1.y, o2.y);
 	    		}
 	    	}
     	});
