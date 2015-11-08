@@ -49,14 +49,13 @@ public class Union {
 
 	private FileType fileType;
 
-	private int partitions;
-
 	private static int DEFAULT_PARTITIONS = 4;
 
 	/*
 	 * Main function, take two parameter as input, output
 	 * 
 	 * @param inputLocation
+	 * 
 	 * @param outputLocation
 	 */
 	public static void main(String[] args) {
@@ -68,7 +67,7 @@ public class Union {
 		// And,Don't add a additional clean up step delete the new generated
 		// file...
 
-		String appName = "SparkApp";
+		String appName = "Union";
 		String master = "local";
 
 		String in;
@@ -86,8 +85,6 @@ public class Union {
 		Union union = new Union(appName, master, in, out);
 		// set the type of files to be read and stored
 		union.setFileType(FileType.TEXT);
-		// set the number of partitions
-		union.setPartitions(2);
 
 		try {
 			union.geometryUnion();
@@ -105,10 +102,6 @@ public class Union {
 		conf = new SparkConf().setAppName(appName).setMaster(master);
 		context = new JavaSparkContext(conf);
 
-		// num of partitions to default
-		if (this.partitions == 0)
-			this.partitions = DEFAULT_PARTITIONS;
-
 		// set file type
 		if (this.fileType == null)
 			this.fileType = FileType.HDFS;
@@ -122,8 +115,7 @@ public class Union {
 		init();
 
 		// read the input file
-		JavaRDD<String> inputFileRDD = this.context.textFile(inputFile,
-				partitions);
+		JavaRDD<String> inputFileRDD = this.context.textFile(inputFile);
 
 		// convert the input file to collections of Geometry shapes
 		JavaRDD<Geometry> polygonsRDD = inputFileRDD
@@ -143,7 +135,7 @@ public class Union {
 		// Get the coordinates
 		JavaRDD<Coordinate> coordinatesRDD = finalPolygonRDD
 				.mapPartitions(new CoordinateMapFunction());
-		
+
 		// Cache the coordinate list
 		coordinatesRDD.cache();
 
@@ -159,8 +151,6 @@ public class Union {
 		if (numGeoms > 1) {
 			// has multiple polygons
 
-			coordinatesRDD.repartition(this.partitions);
-
 			Coordinate minX = coordinatesRDD
 					.reduce(new CoordinateReduceFunction(CoordinateType.MIN_X));
 
@@ -172,31 +162,34 @@ public class Union {
 
 			Coordinate maxY = coordinatesRDD
 					.reduce(new CoordinateReduceFunction(CoordinateType.MAX_Y));
-			
+
 			// new polygon with extreme points
 			finalCoordinatesRDD = this.context.parallelize(
 					Arrays.asList(new Coordinate[] {
 							new Coordinate(minX.x, minY.y),
 							new Coordinate(maxX.x, minY.y),
 							new Coordinate(maxX.x, maxY.y),
-							new Coordinate(minX.x, maxY.y)}), 1);
+							new Coordinate(minX.x, maxY.y) }), 1);
 		} else {
 			finalCoordinatesRDD = coordinatesRDD;
 		}
-		
-		
+
 		// Get distinct points in the coordinates
-		JavaRDD<Point> finalPointsRDD = finalCoordinatesRDD.map(new PointMapFunction()).distinct();
-						
+		JavaRDD<Point> finalPointsRDD = finalCoordinatesRDD.map(
+				new PointMapFunction()).distinct();
+
 		// Map to a tuple to sort the Points
-		JavaPairRDD<Point, Boolean> pointTupleRDD = finalPointsRDD.mapToPair(new PointPairFunction());
-		
+		JavaPairRDD<Point, Boolean> pointTupleRDD = finalPointsRDD
+				.mapToPair(new PointPairFunction());
+
 		// Sort the points
-		JavaPairRDD<Point, Boolean> sortedPointTupleRDD = pointTupleRDD.sortByKey(new PointComparator());
-		
+		JavaPairRDD<Point, Boolean> sortedPointTupleRDD = pointTupleRDD
+				.sortByKey(new PointComparator());
+
 		// Map to points RDD
-		JavaRDD<Point> finalSortedPointRDD = sortedPointTupleRDD.map(new TupleToPointMapFunction());
-		
+		JavaRDD<Point> finalSortedPointRDD = sortedPointTupleRDD
+				.map(new TupleToPointMapFunction());
+
 		// Write to a file
 		finalSortedPointRDD.saveAsTextFile(this.outputFile);
 
@@ -257,14 +250,6 @@ public class Union {
 
 	public void setFileType(FileType fileType) {
 		this.fileType = fileType;
-	}
-
-	public int getPartitions() {
-		return partitions;
-	}
-
-	public void setPartitions(int partitions) {
-		this.partitions = partitions;
 	}
 
 }
