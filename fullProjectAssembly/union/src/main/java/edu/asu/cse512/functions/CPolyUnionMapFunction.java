@@ -26,6 +26,9 @@ public class CPolyUnionMapFunction implements FlatMapFunction<Iterator<Geometry>
 
 		while (polygons.hasNext())
 			gList.add(polygons.next());
+		
+		if (gList.isEmpty())
+			return gList;
 	
 
 		CascadedPolygonUnion u = new CascadedPolygonUnion(gList);

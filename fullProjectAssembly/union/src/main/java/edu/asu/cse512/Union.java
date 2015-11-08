@@ -3,17 +3,23 @@ package edu.asu.cse512;
 import java.util.Arrays;
 
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 
+import edu.asu.cse512.beans.Point;
 import edu.asu.cse512.functions.CPolyUnionMapFunction;
 import edu.asu.cse512.functions.CoordinateMapFunction;
 import edu.asu.cse512.functions.CoordinateReduceFunction;
 import edu.asu.cse512.functions.CoordinateType;
 import edu.asu.cse512.functions.GeometryFileMapFunction;
+import edu.asu.cse512.functions.PointComparator;
+import edu.asu.cse512.functions.PointMapFunction;
+import edu.asu.cse512.functions.PointPairFunction;
+import edu.asu.cse512.functions.TupleToPointMapFunction;
 
 /**
  * @author hdworker
@@ -51,7 +57,6 @@ public class Union {
 	 * Main function, take two parameter as input, output
 	 * 
 	 * @param inputLocation
-	 * 
 	 * @param outputLocation
 	 */
 	public static void main(String[] args) {
@@ -71,6 +76,7 @@ public class Union {
 
 		if (!validateInputs(args)) {
 			// Invalid inputs
+			System.out.println("Invalid arguments");
 			System.exit(1);
 		}
 
@@ -80,15 +86,17 @@ public class Union {
 		Union union = new Union(appName, master, in, out);
 		// set the type of files to be read and stored
 		union.setFileType(FileType.TEXT);
-		// set the num of partitions
+		// set the number of partitions
 		union.setPartitions(2);
 
 		try {
 			union.geometryUnion();
 		} catch (Exception e) {
 			// Exception
+			System.out.println("Exception occured: " + e.getMessage());
+			// e.printStackTrace();
 		} finally {
-			union.closeSpark();
+			union.close();
 		}
 
 	}
@@ -131,22 +139,28 @@ public class Union {
 				.mapPartitions(new CPolyUnionMapFunction());
 
 		finalPolygonRDD.cache();
-		
+
 		// Get the coordinates
 		JavaRDD<Coordinate> coordinatesRDD = finalPolygonRDD
 				.mapPartitions(new CoordinateMapFunction());
 		
+		// Cache the coordinate list
+		coordinatesRDD.cache();
+
 		// final list of coordinates
 		JavaRDD<Coordinate> finalCoordinatesRDD;
 
+		// Get the first polygon
 		Geometry finalPolygon = finalPolygonRDD.first();
 
 		int numGeoms = finalPolygon.getNumGeometries();
 
-		if (numGeoms > 0) {
+		// If number of polygons are more than 1 in the geometry
+		if (numGeoms > 1) {
 			// has multiple polygons
-			
+
 			coordinatesRDD.repartition(this.partitions);
+
 			Coordinate minX = coordinatesRDD
 					.reduce(new CoordinateReduceFunction(CoordinateType.MIN_X));
 
@@ -158,20 +172,37 @@ public class Union {
 
 			Coordinate maxY = coordinatesRDD
 					.reduce(new CoordinateReduceFunction(CoordinateType.MAX_Y));
-
-			// new polygon
-			finalCoordinatesRDD = this.context.parallelize(Arrays.asList(new Coordinate[] { minX,
-					minY, maxX, maxY }));
+			
+			// new polygon with extreme points
+			finalCoordinatesRDD = this.context.parallelize(
+					Arrays.asList(new Coordinate[] {
+							new Coordinate(minX.x, minY.y),
+							new Coordinate(maxX.x, minY.y),
+							new Coordinate(maxX.x, maxY.y),
+							new Coordinate(minX.x, maxY.y)}), 1);
 		} else {
 			finalCoordinatesRDD = coordinatesRDD;
 		}
-
-		// output polygons
-		System.out.println(finalCoordinatesRDD.collect());
+		
+		
+		// Get distinct points in the coordinates
+		JavaRDD<Point> finalPointsRDD = finalCoordinatesRDD.map(new PointMapFunction()).distinct();
+						
+		// Map to a tuple to sort the Points
+		JavaPairRDD<Point, Boolean> pointTupleRDD = finalPointsRDD.mapToPair(new PointPairFunction());
+		
+		// Sort the points
+		JavaPairRDD<Point, Boolean> sortedPointTupleRDD = pointTupleRDD.sortByKey(new PointComparator());
+		
+		// Map to points RDD
+		JavaRDD<Point> finalSortedPointRDD = sortedPointTupleRDD.map(new TupleToPointMapFunction());
+		
+		// Write to a file
+		finalSortedPointRDD.saveAsTextFile(this.outputFile);
 
 	}
 
-	public void closeSpark() {
+	public void close() {
 		try {
 			if (this.context != null)
 				this.context.close();

@@ -25,6 +25,7 @@ public class CoordinateReduceFunction implements
 		case MIN_X: // minimum x
 			c = one.x < two.x ? one : two;
 			break;
+			
 		case MAX_X: // maximum x
 			c = one.x > two.x ? one : two;
 			break;
