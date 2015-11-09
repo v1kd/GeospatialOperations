@@ -49,8 +49,6 @@ public class Union {
 
 	private FileType fileType;
 
-	private static int DEFAULT_PARTITIONS = 4;
-
 	/*
 	 * Main function, take two parameter as input, output
 	 * 
@@ -66,9 +64,11 @@ public class Union {
 		// Output your result, you need to sort your result!!!
 		// And,Don't add a additional clean up step delete the new generated
 		// file...
+		System.out.println("Union started");
 
 		String appName = "Union";
-		String master = "local";
+		// String master = "local";
+		String master = "spark://192.168.0.69:7077";
 
 		String in;
 		String out;
@@ -99,7 +99,7 @@ public class Union {
 	}
 
 	private void init() throws Exception {
-		conf = new SparkConf().setAppName(appName).setMaster(master);
+		conf = new SparkConf().setAppName(appName);
 		context = new JavaSparkContext(conf);
 
 		// set file type
@@ -130,14 +130,14 @@ public class Union {
 		JavaRDD<Geometry> finalPolygonRDD = cascadedPolygonRDD.coalesce(1)
 				.mapPartitions(new CPolyUnionMapFunction());
 
-		finalPolygonRDD.cache();
+		// finalPolygonRDD.cache();
 
 		// Get the coordinates
 		JavaRDD<Coordinate> coordinatesRDD = finalPolygonRDD
 				.mapPartitions(new CoordinateMapFunction());
 
 		// Cache the coordinate list
-		coordinatesRDD.cache();
+		// coordinatesRDD.cache();
 
 		// final list of coordinates
 		JavaRDD<Coordinate> finalCoordinatesRDD;
