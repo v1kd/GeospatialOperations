@@ -21,7 +21,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-import geospatial1.operation1.functions.*;
+import edu.asu.cse512.functions.*;
 //This calcualtes the convex hulls locally
 class hull implements FlatMapFunction<Iterator<Coordinate>, Coordinate>, Serializable
 {
