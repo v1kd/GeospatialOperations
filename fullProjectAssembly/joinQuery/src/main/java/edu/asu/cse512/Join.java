@@ -70,10 +70,10 @@ public class Join
 	};
 	
     public static void main( String[] args ) {
-    	String input1 = "JoinQueryInput1.csv";
+    	String input1 = "JoinQueryInput3.csv";
     	String input2 = "JoinQueryInput2.csv";
     	String output = "outputLocation";
-    	String input1type = "rectangle";
+    	String input1type = "point";
     	
     	spatialJoinQuery(input1, input2, output, input1type);
     }
@@ -87,7 +87,7 @@ public class Join
 		SparkConf conf = new SparkConf().setAppName("SpatialJoinQuery").setMaster("local");
     	JavaSparkContext sparkContext = new JavaSparkContext(conf);
     	
-    	// making Java RDDS from input files
+    	// making Java RDDs from input files
 		JavaRDD<String> file1 = sparkContext.textFile(input1);
 		JavaRDD<String> file2 = sparkContext.textFile(input2);
 		
@@ -174,6 +174,10 @@ public class Join
 							
 							// getting all the bTypeRectangles in an array list
 							ArrayList<Rectangle> rectangles = (ArrayList<Rectangle>) broadcastRectangles.getValue();
+							
+//							System.out.println(rectangles);
+							
+							
 							Integer rectangleId = rectangle.getId();
 							ArrayList<Integer> rectangleIDs = new ArrayList<Integer>();
 							

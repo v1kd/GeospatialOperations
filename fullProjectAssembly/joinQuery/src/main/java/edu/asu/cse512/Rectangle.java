@@ -65,8 +65,41 @@ public class Rectangle implements Serializable {
 				&& point.getY1() >= y1 && point.getY1() <= y2;
 	}
 	
-	public Boolean has(Rectangle rectangle) {		
-		return (x1 <= rectangle.getX1() && x2 >= rectangle.getX2()
-				&& y1 <= rectangle.getY1() && y2 >= rectangle.getY2());
+	public Boolean has(Rectangle rectangle) {
+		double rectangleX1 = rectangle.getX1();
+		double rectangleY1 = rectangle.getY1();
+		double rectangleX2 = rectangle.getX2();
+		double rectangleY2 = rectangle.getY2();
+		
+//		System.out.println("x1 = " + x1 + " rec.x1 = " + rectangle.getX1());
+//		System.out.println("x2 = " + x2 + " rec.x2 = " + rectangle.getX2());
+//		System.out.println("y1 = " + y1 + " rec.y1 = " + rectangle.getY1());
+//		System.out.println("y2 = " + y2 + " rec.y2 = " + rectangle.getY1());
+		
+		return ((((x1 >= rectangleX1 && x1 <= rectangleX2) 
+						|| (x2 >= rectangleX1 && x2 <= rectangleX2))
+				&& ((y1 >= rectangleY1 && y1 <= rectangleY2)
+						|| (y2 >= rectangleY1 && y2 <= rectangleY2)))
+				|| (((rectangleX1 >= x1 && rectangleX1 <= x2)
+						|| (rectangleX2 >= x1 && rectangleX2 <= x2))
+				&&((rectangleY1 >= y1 && rectangleY1 <= y2)
+						|| (rectangleY2 >= y1 && rectangleY2 <= y2))));
+						
+//		return ((x1 >= rectangle.getX1() && x1 <= rectangle.getX2()
+//				&& y1 >= rectangle.getY1() && y1 <= rectangle.getY2())
+//				|| (x2 >= rectangle.getX1() && x2 <= rectangle.getX2()
+//				    && y2 >= rectangle.getY1() && y2 <= rectangle.getY2())
+//				|| (x1 >= rectangle.getX1() && x1 <= rectangle.getX2()
+//				   && y2 >= rectangle.getY1() && y2 <= rectangle.getY2())
+//				|| (x2 >= rectangle.getX1() && x2 <= rectangle.getX2()
+//				    && y1 >= rectangle.getY1() && y1 <= rectangle.getY2())
+//				|| (rectangle.getX1() >= x1 && rectangle.getX1() <= x2
+//						&& rectangle.getY1() >= y1 && rectangle.getY1() <= y2)
+//				|| (rectangle.getX2() >= x1 && rectangle.getX2() <= x2
+//						&& rectangle.getY2() >= y1 && rectangle.getY2() <= y2)
+//				|| (rectangle.getX1() >= x1 && rectangle.getX1() <= x2
+//						&& rectangle.getY2() >= y1 && rectangle.getY2() <= y2)
+//				|| (rectangle.getX2() >= x1 && rectangle.getX2() <= x2
+//						&& rectangle.getY1() >= y1 && rectangle.getY1() <= y2));
 	}
 }
