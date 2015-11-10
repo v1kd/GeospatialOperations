@@ -46,9 +46,9 @@ public class RangeQuery
 
     public static void main(String[] args)
     {
-    	String input1 = "RangeQueryTestData.csv";
-    	String input2 = "RangeQueryRectangle.csv";
-    	String output = "output";
+    	String input1 = args[0];
+    	String input2 = args[1];
+    	String output = args[2];
     	
     	rangeQuery(input1, input2, output);
     }

@@ -70,11 +70,11 @@ public class Join
 	};
 	
     public static void main( String[] args ) {
-    	String input1 = "JoinQueryInput3.csv";
-    	String input2 = "JoinQueryInput2.csv";
-    	String output = "outputLocation";
-    	String input1type = "point";
-    	
+    	String input1 = args[0];
+    	String input2 = args[1];
+    	String input1type = args[2];
+    	String output = args[3];
+
     	spatialJoinQuery(input1, input2, output, input1type);
     }
 
@@ -174,9 +174,6 @@ public class Join
 							
 							// getting all the bTypeRectangles in an array list
 							ArrayList<Rectangle> rectangles = (ArrayList<Rectangle>) broadcastRectangles.getValue();
-							
-//							System.out.println(rectangles);
-							
 							
 							Integer rectangleId = rectangle.getId();
 							ArrayList<Integer> rectangleIDs = new ArrayList<Integer>();
