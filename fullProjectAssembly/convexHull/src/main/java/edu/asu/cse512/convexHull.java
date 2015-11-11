@@ -6,20 +6,17 @@ import org.apache.spark.api.java.function.Function;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-
-import com.vividsolutions.jts.algorithm.ConvexHull;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.io.WKTReader;
+import com.vividsolutions.jts.operation.union.CascadedPolygonUnion;
 
 import edu.asu.cse512.functions.*;
 //This calcualtes the convex hulls locally
@@ -28,15 +25,15 @@ class hull implements FlatMapFunction<Iterator<Coordinate>, Coordinate>, Seriali
 	//Iterate over the coordinates to calcualte the convex hull
 	public Iterable<Coordinate> call(Iterator<Coordinate> crd)
 	{
-		List<Coordinate> Coordinates = new ArrayList<Coordinate>();
-		GeometryFactory gf = new GeometryFactory();
+		List<Geometry> Coordinates = new ArrayList<Geometry>();
 		try{
 			while(crd.hasNext())
 			{
 				//Read the coordinate
 				Coordinate temp = crd.next();
 				if(temp!=null){
-					Coordinates.add(temp);
+					Coordinates.add(new WKTReader().read("Point(" + String.valueOf(temp.x)+ " " + String.valueOf(temp.y) + ")"));
+					
 				}
 			}}
 		catch(Exception e)
@@ -44,11 +41,9 @@ class hull implements FlatMapFunction<Iterator<Coordinate>, Coordinate>, Seriali
 			e.printStackTrace();
 		}
 		
-		// Create new ConvexHull object with list of coordinates and Geometryfactory object as input
-		ConvexHull ch = new ConvexHull(Coordinates.toArray(new Coordinate[Coordinates.size()]), gf);
-		
 		// Perform Convex Hull operation
-		Geometry g=ch.getConvexHull();
+		
+		Geometry g= CascadedPolygonUnion.union(Coordinates).convexHull();
 		
 		//Convert Geometry to coordinates
 		Coordinate[] c= g.getCoordinates();
@@ -87,25 +82,7 @@ public class convexHull
 		}
 	};
 	
-	private static List<Coordinate> sortList(List<Coordinate> cr){
-		Collections.sort(cr,new Comparator<Coordinate>() {
-
-	    	public int compare(Coordinate o1, Coordinate o2) {
-	    		if(o1==null || o2==null){
-	    			return 0;
-	    		}
-	    		else if(o1.x!=o2.x){
-	    			return Double.compare(o1.x, o2.x);
-	    		}else{
-	    			return Double.compare(o1.y, o2.y);
-	    		}
-	    	}
-    	});
-
-		return cr;
-	}
-	
-    public static void main( String[] args ) throws FileNotFoundException
+	public static void main( String[] args ) throws FileNotFoundException
     {
     	if (args.length <= 0) {
     		System.out.println("We require input file path, output file path and number of partitions argument to proceed further.");
@@ -136,33 +113,21 @@ public class convexHull
     	JavaSparkContext sc = new JavaSparkContext(conf);
     	
     	// Read file as RDD
-    	JavaRDD<String> inputData = sc.textFile(inputFile, noOfPartitions);
+    	JavaRDD<String> inputData = sc.textFile(inputFile);
 //    	JavaRDD<Coordinate> coordinates = inputData.mapPartitions(parseData);
     	
     	// Map each String in the file as a coordinate object
     	JavaRDD<Coordinate> coordinates = inputData.map(parseData);//.repartition(noOfPartitions);
-    	
-    	// Map to a tuple to sort the Points
-    	JavaPairRDD<Coordinate, Boolean> pointTupleRDD = coordinates.mapToPair(new CoordinatePairFunction());
-
-		// Sort the points
-		JavaPairRDD<Coordinate, Boolean> sortedPointTupleRDD = pointTupleRDD.sortByKey(new CoordinateComparator());
-
-		// Map to points RDD
-		JavaRDD<Coordinate> finalSortedPointRDD = sortedPointTupleRDD.map(new TupleToCoordinateMapFunction());
-
-    	// Convert sorted collection to RDD
-		
-    	
+    	    	
     	// Perform Convex hull operation on individual partition
-    	JavaRDD<Coordinate> localHull = finalSortedPointRDD.mapPartitions(new hull());
+    	JavaRDD<Coordinate> localHull = coordinates.mapPartitions(new hull());
     	
-    	// Repartition to 1 partition in order to apply 'convex hull' on all the Coordinate objects obtained from individual partitions
-    	JavaRDD<Coordinate> calculatedHull = localHull.coalesce(1).cache();
-    	
-    	// Perform Convex hull operation
+//    	// Repartition to 1 partition in order to apply 'convex hull' on all the Coordinate objects obtained from individual partitions
+    	JavaRDD<Coordinate> calculatedHull = localHull.coalesce(1).distinct().cache();
+//    	
+//    	// Perform Convex hull operation
     	JavaRDD<Coordinate> globalHull = calculatedHull.mapPartitions(new hull()).distinct();
-    	
+//    	
     	
 		// Map to a tuple to sort the Points
 		JavaPairRDD<Coordinate, Boolean> coordinateTupleRDD = globalHull.mapToPair(new CoordinatePairFunction());
