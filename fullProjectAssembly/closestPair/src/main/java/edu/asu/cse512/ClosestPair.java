@@ -1,14 +1,11 @@
 package edu.asu.cse512;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Logger;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -18,7 +15,6 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 
-import scala.Array;
 import scala.Tuple2;
 
 /**
@@ -27,6 +23,10 @@ import scala.Tuple2;
  */
 
 class Point implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	public double x;
 	public double y;
 
@@ -47,6 +47,10 @@ class Point implements Serializable {
 }
 
 class Pair implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	public Point A;
 	public Point B;
 	double distanceLength;
@@ -63,12 +67,14 @@ class Pair implements Serializable {
 
 	@Override
 	public String toString() {
-		return "Pair [A=" + A + ", B=" + B + ", distanceLength=" + distanceLength + "]";
+		return "Pair [A=" + A + ", B=" + B + ", distanceLength="
+				+ distanceLength + "]";
 	}
 
 	public double findDistance(Point A1, Point A2) {
 		double dist;
-		dist = Math.sqrt(Math.pow((A1.x - A2.x), 2) + Math.pow((A1.y - A2.y), 2));
+		dist = Math.sqrt(Math.pow((A1.x - A2.x), 2)
+				+ Math.pow((A1.y - A2.y), 2));
 		return dist;
 	}
 }
@@ -80,61 +86,62 @@ public class ClosestPair {
 	 * @param inputLocation
 	 * 
 	 * @param outputLocation
-	 * 
 	 */
-	public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
+	public static void main(String[] args) throws FileNotFoundException,
+			UnsupportedEncodingException {
 		// Initialize, need to remove existing in output file location.
-		int partitions = 4;
-		String appName = "Closest Pair";
-		String inputFilePath = "hdfs://master:54310/test/closestpairinput.csv";
-		String outputFilePath = "hdfs://master:54310/test/closestpairoutput.csv";
-		String master = "local"; // "spark://192.168.0.73:7077";
+		
+		String appName = "Group6-ClosestPair";
+		
 
-		SparkConf conf = new SparkConf().setAppName(appName).setMaster(master);
+		SparkConf conf = new SparkConf().setAppName(appName);
 		JavaSparkContext sc = new JavaSparkContext(conf);
-		
-		JavaRDD<String> lines = sc.textFile(args[0]);
-		//JavaRDD<String> lines = sc.textFile("/home/hdworker/Downloads/TestCaseTA/ClosestPairTestData.csv", partitions);
-		//JavaRDD<String> lines = sc.textFile(inputFilePath);
-		
-		JavaRDD<Point> points = lines.mapPartitions(new FlatMapFunction<Iterator<String>, Point>() {
 
-			/**
+		JavaRDD<String> lines = sc.textFile(args[0]);
+		// JavaRDD<String> lines =
+		// sc.textFile("/home/hdworker/Downloads/TestCaseTA/ClosestPairTestData.csv",
+		// partitions);
+		// JavaRDD<String> lines = sc.textFile(inputFilePath);
+
+		JavaRDD<Point> points = lines
+				.mapPartitions(new FlatMapFunction<Iterator<String>, Point>() {
+
+					/**
 			 * 
 			 */
-			private static final long serialVersionUID = 1L;
+					private static final long serialVersionUID = 1L;
 
-			public Iterable<Point> call(Iterator<String> line) {
-				String sep = ",";
-				String eachline;
-				String[] xyvals;
-				Point eachPoint;
-				List<Point> pointsFromInputFile = new ArrayList<Point>();
-				while (line.hasNext()) {
-					eachline = line.next();
-					xyvals = eachline.split(sep);
-					double p1, p2;
-					if (null == xyvals || xyvals.length != 2)
-						continue;
-					try {
-						p1 = Double.parseDouble(xyvals[0]);
-						p2 = Double.parseDouble(xyvals[1]);
-					} catch (Exception e) {
-						continue;
+					public Iterable<Point> call(Iterator<String> line) {
+						String sep = ",";
+						String eachline;
+						String[] xyvals;
+						Point eachPoint;
+						List<Point> pointsFromInputFile = new ArrayList<Point>();
+						while (line.hasNext()) {
+							eachline = line.next();
+							xyvals = eachline.split(sep);
+							double p1, p2;
+							if (null == xyvals || xyvals.length != 2)
+								continue;
+							try {
+								p1 = Double.parseDouble(xyvals[0]);
+								p2 = Double.parseDouble(xyvals[1]);
+							} catch (Exception e) {
+								continue;
+							}
+
+							eachPoint = new Point(p1, p2);
+							pointsFromInputFile.add(eachPoint);
+						}
+						return pointsFromInputFile;
 					}
+				});
 
-					eachPoint = new Point(p1, p2);
-					pointsFromInputFile.add(eachPoint);
-				}
-				return pointsFromInputFile;
-			}
-		});
-
-//		System.out.println(points.collect().size());
+		// System.out.println(points.collect().size());
 
 		JavaPairRDD<Point, Point> allPointTuples = points.cartesian(points);
 
-//		System.out.println("Total cart: " + allPointTuples.collect().size());
+		// System.out.println("Total cart: " + allPointTuples.collect().size());
 
 		JavaPairRDD<Point, Point> distinctPointTuples = allPointTuples
 				.filter(new Function<Tuple2<Point, Point>, Boolean>() {
@@ -143,23 +150,14 @@ public class ClosestPair {
 					 */
 					private static final long serialVersionUID = 1L;
 
-					public Boolean call(Tuple2<Point, Point> tuple) throws Exception {
+					public Boolean call(Tuple2<Point, Point> tuple)
+							throws Exception {
 						return !((tuple._1.x == tuple._2.x) && (tuple._1.y == tuple._2.y));
 					}
 				});
 
-//		System.out.println("Dist cart: " + distinctPointTuples.collect().size());
-
-		JavaRDD<Pair> pairsRDD = distinctPointTuples.map(new Function<Tuple2<Point, Point>, Pair>() {
-
-			public Pair call(Tuple2<Point, Point> tuple) throws Exception {
-				// TODO Auto-generated method stub
-				Point pointA = tuple._1();
-				Point pointB = tuple._2();
-				Pair a = new Pair(pointA, pointB);
-				return a;
-			}
-		});
+		// System.out.println("Dist cart: " +
+		// distinctPointTuples.collect().size());
 
 		JavaRDD<Pair> pairs = distinctPointTuples
 				.mapPartitions(new FlatMapFunction<Iterator<Tuple2<Point, Point>>, Pair>() {
@@ -169,7 +167,9 @@ public class ClosestPair {
 					 */
 					private static final long serialVersionUID = 1L;
 
-					public Iterable<Pair> call(Iterator<Tuple2<Point, Point>> tuples) throws Exception {
+					public Iterable<Pair> call(
+							Iterator<Tuple2<Point, Point>> tuples)
+							throws Exception {
 						// TODO Auto-generated method stub
 						List<Pair> pairsFromTuples = new ArrayList<Pair>();
 						// Pair singlePair = new Pair();
@@ -185,29 +185,8 @@ public class ClosestPair {
 					}
 				});
 
-		JavaRDD<Integer> x = pairsRDD.mapPartitions(new FlatMapFunction<Iterator<Pair>, Integer>() {
 
-			public Iterable<Integer> call(Iterator<Pair> arg0) throws Exception {
-				// TODO Auto-generated method stub
-				ArrayList<Integer> x = new ArrayList<Integer>();
-				x.add(1);
-				return x;
-			}
-		});
-
-//		System.out.println("Num of partitions: " + x.collect());
-
-		JavaRDD<Integer> y = pairs.mapPartitions(new FlatMapFunction<Iterator<Pair>, Integer>() {
-
-			public Iterable<Integer> call(Iterator<Pair> arg0) throws Exception {
-				// TODO Auto-generated method stub
-				ArrayList<Integer> x = new ArrayList<Integer>();
-				x.add(1);
-				return x;
-			}
-		});
-
-//		System.out.println("Num of partitions charan: " + y.collect());
+		// System.out.println("Num of partitions charan: " + y.collect());
 
 		Pair minDistPair = pairs.reduce(new Function2<Pair, Pair, Pair>() {
 			/**
@@ -221,40 +200,37 @@ public class ClosestPair {
 			}
 		});
 
-//		System.out.println(minDistPair);
+		// System.out.println(minDistPair);
 
 		Point closestpointA = minDistPair.A;
 		Point closestpointB = minDistPair.B;
 
 		List<Point> closestPoints = new ArrayList<Point>();
-		
-		//SORTING THE TWO POINTS BASED ON X_COORDINATE AND THEN ON Y-COORDINATE
-		if(closestpointA.x < closestpointB.x){  
+
+		// SORTING THE TWO POINTS BASED ON X_COORDINATE AND THEN ON Y-COORDINATE
+		if (closestpointA.x < closestpointB.x) {
 			closestPoints.add(closestpointA);
 			closestPoints.add(closestpointB);
-		}
-		else if(closestpointA.x > closestpointB.x){ 
+		} else if (closestpointA.x > closestpointB.x) {
 			closestPoints.add(closestpointB);
 			closestPoints.add(closestpointA);
-		}
-		else{
-			if(closestpointA.y < closestpointB.y){
+		} else {
+			if (closestpointA.y < closestpointB.y) {
 				closestPoints.add(closestpointA);
 				closestPoints.add(closestpointB);
-			}
-			else{
+			} else {
 				closestPoints.add(closestpointB);
 				closestPoints.add(closestpointA);
 			}
 		}
 
-//		System.out.println(closestPoints.toString());
-		
+		// System.out.println(closestPoints.toString());
+
 		JavaRDD<Point> closestRDD = sc.parallelize(closestPoints);
-		
+
 		closestRDD.saveAsTextFile(args[1]);
-		//closestRDD.saveAsTextFile("/home/hdworker/out.csv");
-		//closestRDD.saveAsTextFile(outputFilePath);
+		// closestRDD.saveAsTextFile("/home/hdworker/out.csv");
+		// closestRDD.saveAsTextFile(outputFilePath);
 
 		// Output your result, you need to sort your result!!!
 		// And,Don't add a additional clean up step delete the new generated

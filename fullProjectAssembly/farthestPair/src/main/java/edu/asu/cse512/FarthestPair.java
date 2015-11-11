@@ -1,12 +1,5 @@
 package edu.asu.cse512;
 
-import org.apache.spark.api.java.*;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
-
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -16,13 +9,24 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
+
+import scala.Tuple2;
+
 import com.vividsolutions.jts.algorithm.ConvexHull;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-import edu.asu.cse512.functions.*;
-import scala.Tuple2;
+import edu.asu.cse512.functions.CoordinateComparator;
+import edu.asu.cse512.functions.CoordinatePairFunction;
+import edu.asu.cse512.functions.TupleToCoordinateMapFunction;
 
 //This calcualtes the convex hulls locally
 class hull implements FlatMapFunction<Iterator<Coordinate>, Coordinate>, Serializable
@@ -146,30 +150,12 @@ public class FarthestPair {
 		}
 
     	String inputFile = args[0];
-    	//setting up default partition if not given in argument
-    	int noOfPartitions = 3;
-    	if(args.length == 3) {
-    		noOfPartitions = Integer.parseInt(args[2]);
-    	}
-    	
-    	//delete if output file already exist
-		try{
-    		File file = new File(args[1]);
-    		if(file.delete()){
-    			System.out.println(file.getName() + " is deleted!");
-    		}else{
-    			System.out.println("Delete operation is failed.");
-    		}
-    	}catch(Exception e){
-    		e.printStackTrace();
-    	}
-
 		
-    	SparkConf conf = new SparkConf().setAppName("FarthestPair").setMaster("local");
+    	SparkConf conf = new SparkConf().setAppName("Group6-FarthestPair");
     	JavaSparkContext sc = new JavaSparkContext(conf);
     	
     	// Read file as RDD
-    	JavaRDD<String> inputData = sc.textFile(inputFile, noOfPartitions);
+    	JavaRDD<String> inputData = sc.textFile(inputFile);
     	//JavaRDD<Coordinate> coordinates = inputData.mapPartitions(parseData);
     	
     	// Map each String in the file as a coordinate object

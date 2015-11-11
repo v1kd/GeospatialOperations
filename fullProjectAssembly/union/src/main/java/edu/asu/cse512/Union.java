@@ -27,9 +27,8 @@ import edu.asu.cse512.functions.TupleToPointMapFunction;
  */
 public class Union {
 
-	public Union(String appName, String master, String inputFile,
+	public Union(String appName, String inputFile,
 			String outputFile) {
-		this.master = master;
 		this.appName = appName;
 		this.inputFile = inputFile;
 		this.outputFile = outputFile;
@@ -64,11 +63,10 @@ public class Union {
 		// Output your result, you need to sort your result!!!
 		// And,Don't add a additional clean up step delete the new generated
 		// file...
-		System.out.println("Union started");
+		// System.out.println("Union started");
 
-		String appName = "Union";
+		String appName = "Group6-Union";
 		// String master = "local";
-		String master = "spark://192.168.0.69:7077";
 
 		String in;
 		String out;
@@ -82,7 +80,7 @@ public class Union {
 		in = args[0].trim();
 		out = args[1].trim();
 
-		Union union = new Union(appName, master, in, out);
+		Union union = new Union(appName, in, out);
 		// set the type of files to be read and stored
 		union.setFileType(FileType.TEXT);
 
@@ -96,6 +94,7 @@ public class Union {
 			union.close();
 		}
 
+		System.exit(0);
 	}
 
 	private void init() throws Exception {

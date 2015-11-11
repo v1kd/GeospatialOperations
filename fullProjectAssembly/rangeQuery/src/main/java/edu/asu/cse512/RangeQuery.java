@@ -1,11 +1,11 @@
 package edu.asu.cse512;
 
-import org.apache.spark.api.java.*;
-
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.broadcast.Broadcast;
 
@@ -54,7 +54,7 @@ public class RangeQuery
     }
 
 	public static void rangeQuery(String input1, String input2, String output) {
-    	SparkConf conf = new SparkConf().setAppName("RangeQuery").setMaster("local");
+    	SparkConf conf = new SparkConf().setAppName("Group6-RangeQuery");
     	JavaSparkContext sparkContext = new JavaSparkContext(conf);
 		
     	// making Java RDDS from input files

@@ -1,13 +1,13 @@
 package edu.asu.cse512;
 
-import org.apache.spark.api.java.*;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.broadcast.Broadcast;
 
@@ -84,7 +84,7 @@ public class Join
 			String output,
 			String input1type) {
     	
-		SparkConf conf = new SparkConf().setAppName("SpatialJoinQuery").setMaster("local");
+		SparkConf conf = new SparkConf().setAppName("Group6-SpatialJoinQuery");
     	JavaSparkContext sparkContext = new JavaSparkContext(conf);
     	
     	// making Java RDDs from input files
