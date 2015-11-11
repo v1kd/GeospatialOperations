@@ -1,6 +1,5 @@
 package edu.asu.cse512;
 
-
 import org.apache.spark.api.java.*;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.function.FlatMapFunction;
@@ -9,7 +8,6 @@ import org.apache.spark.api.java.function.Function2;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,16 +16,14 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-
 import com.vividsolutions.jts.algorithm.ConvexHull;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-import geospatial1.operation1.functions.*;
+import edu.asu.cse512.functions.*;
 import scala.Tuple2;
 
-import edu.asu.cse512.functions.*;
 //This calcualtes the convex hulls locally
 class hull implements FlatMapFunction<Iterator<Coordinate>, Coordinate>, Serializable
 {
