@@ -61,7 +61,7 @@ class hull implements FlatMapFunction<Iterator<Coordinate>, Coordinate>, Seriali
 
 
 //Algorithm to explain convex_hull operation
-public class CalculateConvexHull 
+public class convexHull 
 {    
 	public static Function<String, Coordinate> parseData = new Function<String, Coordinate>() {
 	
@@ -109,7 +109,7 @@ public class CalculateConvexHull
     {
     	if (args.length <= 0) {
     		System.out.println("We require input file path, output file path and number of partitions argument to proceed further.");
-    		System.out.println("Usage: java ConvexHull <input file path> <output file path> <noOfPartitions>");
+    		System.out.println("Usage: java convexHull <input file path> <output file path> <noOfPartitions>");
     		System.exit(0);
 		}
 
