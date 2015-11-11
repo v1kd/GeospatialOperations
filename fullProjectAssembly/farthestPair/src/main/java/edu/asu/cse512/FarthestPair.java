@@ -97,7 +97,7 @@ class Pair implements Serializable {
 
 //Algorithm to explain convex_hull operation
 
-public class fpair {
+public class FarthestPair {
 	public static Function<String, Coordinate> parseData = new Function<String, Coordinate>() {
 		
 		public Coordinate call(String s) throws Exception {
@@ -145,7 +145,7 @@ public class fpair {
     	
 		if (args.length <= 0) {
     		System.out.println("We require input file path, output file path and number of partitions argument to proceed further.");
-    		System.out.println("Usage: java fpair <input file path> <output file path> <noOfPartitions>");
+    		System.out.println("Usage: java FarthestPair <input file path> <output file path> <noOfPartitions>");
     		System.exit(0);
 		}
 
@@ -169,7 +169,7 @@ public class fpair {
     	}
 
 		
-    	SparkConf conf = new SparkConf().setAppName("FPair").setMaster("local");
+    	SparkConf conf = new SparkConf().setAppName("FarthestPair").setMaster("local");
     	JavaSparkContext sc = new JavaSparkContext(conf);
     	
     	// Read file as RDD
