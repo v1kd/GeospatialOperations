@@ -8,9 +8,9 @@
     <version>0.1</version>
   </parent>
   <groupId>edu.asu.cse512.15fall</groupId>
-  <artifactId>closetPair</artifactId>
+  <artifactId>closestPair</artifactId>
   <version>0.1</version>
-  <name>closetPair</name>
+  <name>closestPair</name>
   <url>http://maven.apache.org</url>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
