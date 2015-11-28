@@ -72,8 +72,8 @@ public class Join
     public static void main( String[] args ) {
     	String input1 = args[0];
     	String input2 = args[1];
-    	String input1type = args[2];
-    	String output = args[3];
+    	String output = args[2];
+    	String input1type = args[3];
 
     	spatialJoinQuery(input1, input2, output, input1type);
     }
