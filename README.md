@@ -1,4 +1,10 @@
-# CSE512-15fall-project
-## Lets start coding..
-Vikranth - Union and may be other as well..
-Ajay - Convex Hull as of now, if time permits may be farthest pair of point.
+Geo-spatial Operations
+======================
+
+ 1. Geometric Union
+ 2. Closest pair
+ 3. Farthest pair
+ 4. Spatial aggregation
+ 5. Convex hull
+ 6. Spatial Join
+ 7. Range query
